@@ -25,6 +25,8 @@ from google.adk.events import Event, EventActions
 from google.adk.planners import BuiltInPlanner
 from google.adk.tools import google_search
 from google.adk.tools.agent_tool import AgentTool
+from google.adk.tools.mcp_tool.mcp_session_manager import StreamableHTTPServerParams
+from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset
 from google.genai import types as genai_types
 from pydantic import BaseModel, Field
 
@@ -237,6 +239,18 @@ section_planner = LlmAgent(
     output_key="report_sections",
 )
 
+google_search_tool = Agent(
+    model=config.worker_model,
+    name="google_search_tool",
+    instruction="Your only function is to take input from the section_researcher agent and perform google search for it. Return information as you receive it without any additional processing",
+    output_key="google_search_tool_output",
+    tools=[google_search],
+dfs_research_tool = Agent(
+    model=config.worker_model,
+    name="dfs_research_tool",
+    instruction="Your only function is to take input from the section_researcher agent and perform Data For SEO research with the attached MCP server. Return information as you receive it without any additional processing",
+    output_key="dfs_research_tool_output",
+    tools=[MCPToolset(connection_params=StreamableHTTPServerParams(url='http://localhost:3000/http'))],
 
 section_researcher = LlmAgent(
     model=config.worker_model,
@@ -259,7 +273,7 @@ section_researcher = LlmAgent(
     *   **Execution Directive:** You **MUST** systematically process every goal prefixed with `[RESEARCH]` before proceeding to Phase 2.
     *   For each `[RESEARCH]` goal:
         *   **Query Generation:** Formulate a comprehensive set of 4-5 targeted search queries. These queries must be expertly designed to broadly cover the specific intent of the `[RESEARCH]` goal from multiple angles.
-        *   **Execution:** Utilize the `google_search` tool to execute **all** generated queries for the current `[RESEARCH]` goal.
+        *   **Execution:** Utilize the `google_search_tool` search grounding tool OR the 'dfs_research_tool' SEO research tool to execute **all** generated queries for the current `[RESEARCH]` goal.
         *   **Summarization:** Synthesize the search results into a detailed, coherent summary that directly addresses the objective of the `[RESEARCH]` goal.
         *   **Internal Storage:** Store this summary, clearly tagged or indexed by its corresponding `[RESEARCH]` goal, for later and exclusive use in Phase 2. You **MUST NOT** lose or discard any generated summaries.
 
@@ -283,7 +297,7 @@ section_researcher = LlmAgent(
 
     **Final Output:** Your final output will comprise the complete set of processed summaries from `[RESEARCH]` tasks AND all the generated artifacts from `[DELIVERABLE]` tasks, presented clearly and distinctly.
     """,
-    tools=[google_search],
+    tools=[AgentTool(google_search_tool), AgentTool(dfs_research_tool)],
     output_key="section_research_findings",
     after_agent_callback=collect_research_sources_callback,
 )
