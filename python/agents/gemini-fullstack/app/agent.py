@@ -239,14 +239,14 @@ section_planner = LlmAgent(
     output_key="report_sections",
 )
 
-google_search_tool = Agent(
+google_search_tool = LlmAgent(
     model=config.worker_model,
     name="google_search_tool",
     instruction="Your only function is to take input from the section_researcher agent and perform google search for it. Return information as you receive it without any additional processing",
     output_key="google_search_tool_output",
     tools=[google_search],
 )
-dfs_research_tool = Agent(
+dfs_research_tool = LlmAgent(
     model=config.worker_model,
     name="dfs_research_tool",
     instruction="Your only function is to take input from the section_researcher agent and perform Data For SEO research with the attached MCP server. Return information as you receive it without any additional processing",
