@@ -37,7 +37,7 @@ export function InputForm({ onSubmit, isLoading, context = 'homepage' }: InputFo
   const placeholderText =
     context === 'chat'
       ? "Respond to the Agent, refine the plan, or type 'Looks good'..."
-      : "Ask me to create a report... e.g., on the keyworking ranking of my website";
+      : "Ask me to create a report... e.g., on the keyword ranking of my website";
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-2">
