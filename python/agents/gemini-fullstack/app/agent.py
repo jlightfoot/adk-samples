@@ -17,6 +17,8 @@ import logging
 import re
 from collections.abc import AsyncGenerator
 from typing import Literal
+from dotenv import load_dotenv
+import os
 
 from google.adk.agents import BaseAgent, LlmAgent, LoopAgent, SequentialAgent
 from google.adk.agents.callback_context import CallbackContext
@@ -26,12 +28,14 @@ from google.adk.planners import BuiltInPlanner
 from google.adk.tools import google_search
 from google.adk.tools.agent_tool import AgentTool
 from google.adk.tools.mcp_tool.mcp_session_manager import StreamableHTTPServerParams
-from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, StdioServerParameters
+from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset
+from google.adk.tools.mcp_tool.mcp_toolset import StdioServerParameters
 from google.genai import types as genai_types
 from pydantic import BaseModel, Field
 
 from .config import config
 
+load_dotenv()
 
 # --- Structured Output Models ---
 class SearchQuery(BaseModel):
@@ -197,11 +201,11 @@ plan_generator = LlmAgent(
     - **`[RESEARCH]`**: For goals that primarily involve information gathering, investigation, analysis, or data collection (these require search tool usage by a researcher).
     - **`[DELIVERABLE]`**: For goals that involve synthesizing collected information, creating structured outputs (e.g., tables, charts, summaries, reports), or compiling final output artifacts (these are executed AFTER research tasks, often without further search).
 
-    **INITIAL RULE: Your initial output MUST start with a bulleted list of 5 action-oriented research goals or key questions, followed by any *inherently implied* deliverables.**
-    - All initial 5 goals will be classified as `[RESEARCH]` tasks.
+    **INITIAL RULE: Your initial output MUST start with a bulleted list of 4 action-oriented research goals or key questions, followed by any *inherently implied* deliverables.**
+    - All initial 4 goals will be classified as `[RESEARCH]` tasks.
     - A good goal for `[RESEARCH]` starts with a verb like "Analyze," "Identify," "Investigate."
     - A bad output is a statement of fact like "The event was in April 2024."
-    - **Proactive Implied Deliverables (Initial):** If any of your initial 5 `[RESEARCH]` goals inherently imply a standard output or deliverable (e.g., a comparative analysis suggesting a comparison table, or a comprehensive review suggesting a summary document), you MUST add these as additional, distinct goals immediately after the initial 5. Phrase these as *synthesis or output creation actions* (e.g., "Create a summary," "Develop a comparison," "Compile a report") and prefix them with `[DELIVERABLE][IMPLIED]`.
+    - **Proactive Implied Deliverables (Initial):** If any of your initial 4 `[RESEARCH]` goals inherently imply a standard output or deliverable (e.g., a comparative analysis suggesting a comparison table, or a comprehensive review suggesting a summary document), you MUST add these as additional, distinct goals immediately after the initial 5. Phrase these as *synthesis or output creation actions* (e.g., "Create a summary," "Develop a comparison," "Compile a report") and prefix them with `[DELIVERABLE][IMPLIED]`.
 
     **REFINEMENT RULE**:
     - **Integrate Feedback & Mark Changes:** When incorporating user feedback, make targeted modifications to existing bullet points. Add `[MODIFIED]` to the existing task type and status prefix (e.g., `[RESEARCH][MODIFIED]`). If the feedback introduces new goals:
@@ -209,7 +213,7 @@ plan_generator = LlmAgent(
         - If it's a synthesis or output creation task, prefix it with `[DELIVERABLE][NEW]`.
     - **Proactive Implied Deliverables (Refinement):** Beyond explicit user feedback, if the nature of an existing `[RESEARCH]` goal (e.g., requiring a structured comparison, deep dive analysis, or broad synthesis) or a `[DELIVERABLE]` goal inherently implies an additional, standard output or synthesis step (e.g., a detailed report following a summary, or a visual representation of complex data), proactively add this as a new goal. Phrase these as *synthesis or output creation actions* and prefix them with `[DELIVERABLE][IMPLIED]`.
     - **Maintain Order:** Strictly maintain the original sequential order of existing bullet points. New bullets, whether `[NEW]` or `[IMPLIED]`, should generally be appended to the list, unless the user explicitly instructs a specific insertion point.
-    - **Flexible Length:** The refined plan is no longer constrained by the initial 5-bullet limit and may comprise more goals as needed to fully address the feedback and implied deliverables.
+    - **Flexible Length:** The refined plan is no longer constrained by the initial 4-bullet limit and may comprise more goals as needed to fully address the feedback and implied deliverables.
 
     **TOOL USE IS STRICTLY LIMITED:**
     Your goal is to create a generic, high-quality plan *without searching*.
@@ -239,7 +243,11 @@ server_gdrive_tool = LlmAgent(
     name="server_gdrive_tool",
     instruction="Your only function is to take input from the section_researcher agent and retrieve business rules and templates from the attahced Google Drive MCP server. Return information as you receive it without any additional processing",
     output_key="server_gdrive_tool_output",
-    tools=[MCPToolset(connection_params=StdioServerParameters(command='npx', args=["-y", "@modelcontextprotocol/server-gdrive"],),),],
+    tools=[MCPToolset(connection_params=StdioServerParameters(
+        command='npx', 
+        args=["-y", "@modelcontextprotocol/server-gdrive"],
+        env={"GDRIVE_CREDENTIALS_PATH": os.getenv("GDRIVE_CRED_PATH")},
+    ),),],
     )
 
 
