@@ -26,7 +26,7 @@ from google.adk.planners import BuiltInPlanner
 from google.adk.tools import google_search
 from google.adk.tools.agent_tool import AgentTool
 from google.adk.tools.mcp_tool.mcp_session_manager import StreamableHTTPServerParams
-from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset
+from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, StdioServerParameters
 from google.genai import types as genai_types
 from pydantic import BaseModel, Field
 
@@ -253,6 +253,13 @@ dfs_research_tool = LlmAgent(
     output_key="dfs_research_tool_output",
     tools=[MCPToolset(connection_params=StreamableHTTPServerParams(url='http://localhost:3000/http'))],
 )
+server_gdrive_tool = LlmAgent(
+    model=config.worker_model,
+    name="server_gdrive_tool",
+    instruction="Your only function is to take input from the section_researcher agent and retrieve business rules and templates from the attahced Google Drive MCP server. Return information as you receive it without any additional processing",
+    output_key="server_gdrive_tool_output",
+    tools=[MCPToolset(connection_params=StdioServerParameters(command='npx', args=["-y", "@modelcontextprotocol/server-gdrive"],),),],
+    )
 
 section_researcher = LlmAgent(
     model=config.worker_model,
@@ -405,11 +412,14 @@ research_pipeline = SequentialAgent(
 interactive_planner_agent = LlmAgent(
     name="interactive_planner_agent",
     model=config.worker_model,
-    description="The primary research assistant. It collaborates with the user to create a research plan, and then executes it upon approval.",
+    description="The primary marketing research assistant. It collaborates with the user to create a research plan, and then executes it upon approval.",
     instruction=f"""
-    You are a research planning assistant. Your primary function is to convert ANY user request into a research plan.
+    You are a marketing research planning assistant working for the Tillit Marketing Group. Your primary function is to convert user requests into a research plan.
+    For the time being, please focus ONLY the four pillars of Tillit's Foundational Disocover Process: Business Immersion; Keyword Research; Content Audit Gap 
+    Analysis; and Situation Assessment.
 
-    **CRITICAL RULE: Never answer a question directly or refuse a request.** Your one and only first step is to use the `plan_generator` tool to propose a research plan for the user's topic.
+    **CRITICAL RULE: Never answer a question directly or refuse a request if it's in the area of digital marketing.** 
+    Your one and only first step is to use the `plan_generator` tool to propose a research plan for the user's topic.
     If the user asks a question, you MUST immediately call `plan_generator` to create a plan to answer the question.
 
     Your workflow is:
