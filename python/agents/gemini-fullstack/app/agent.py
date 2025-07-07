@@ -220,25 +220,6 @@ plan_generator = LlmAgent(
     tools=[google_search],
 )
 
-
-section_planner = LlmAgent(
-    model=config.worker_model,
-    name="section_planner",
-    description="Breaks down the research plan into a structured markdown outline of report sections.",
-    instruction="""
-    You are an expert report architect. Using the research topic and the plan from the 'research_plan' state key, design a logical structure for the final report.
-    Note: Ignore all the tag nanes ([MODIFIED], [NEW], [RESEARCH], [DELIVERABLE]) in the research plan.
-    Your task is to create a markdown outline with 4-6 distinct sections that cover the topic comprehensively without overlap.
-    You can use any markdown format you prefer, but here's a suggested structure:
-    # Section Name
-    A brief overview of what this section covers
-    Feel free to add subsections or bullet points if needed to better organize the content.
-    Make sure your outline is clear and easy to follow.
-    Do not include a "References" or "Sources" section in your outline. Citations will be handled in-line.
-    """,
-    output_key="report_sections",
-)
-
 google_search_tool = LlmAgent(
     model=config.worker_model,
     name="google_search_tool",
@@ -260,6 +241,31 @@ server_gdrive_tool = LlmAgent(
     output_key="server_gdrive_tool_output",
     tools=[MCPToolset(connection_params=StdioServerParameters(command='npx', args=["-y", "@modelcontextprotocol/server-gdrive"],),),],
     )
+
+
+section_planner = LlmAgent(
+    model=config.worker_model,
+    name="section_planner",
+    description="Breaks down the research plan into a structured markdown outline of report sections.",
+    instruction="""
+    You are an expert report architect. Using the research topic and the plan from the 'research_plan' state key, design a logical structure for the final report.
+    Note: Ignore all the tag nanes ([MODIFIED], [NEW], [RESEARCH], [DELIVERABLE]) in the research plan.
+    Your task is to create a markdown outline with one or more of the following sections that cover the topic comprehensively without overlap:
+    # Business Immersion (sample: gdrive:///1QprpU-NX_OLaPm0Zp7MHvZlCoQ_KV1Cs)
+    # Keyword Research (sample: gdrive:///1ARPTXJsjhLuq9yCtvnePQ-n7VmsI0YKZ)
+    # Content Audit Gap Analysis (sample: gdrive:///11mDGIaKtWqnD_QilJJyA1F6IHIOnKv9J)
+    # Situational Assessment (sample: gdrive:///1YaGWu5tGoxBmVJ1d-6TbdHi-4CbG9xZo)
+    You can use any markdown format you prefer, but here's a suggested structure:
+    # Section Name
+    A brief overview of what this section covers
+    using the server_gdrive_tool, reference documents here for section information and formatting guidance: 
+    Feel free to add subsections or bullet points if needed to better organize the content.
+    Make sure your outline is clear and easy to follow.
+    Do not include a "References" or "Sources" section in your outline. Citations will be handled in-line.
+    """,
+    tools=[AgentTool(server_gdrive_tool),],
+    output_key="report_sections",
+)
 
 section_researcher = LlmAgent(
     model=config.worker_model,
