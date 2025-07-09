@@ -245,8 +245,11 @@ server_gdrive_tool = LlmAgent(
     output_key="server_gdrive_tool_output",
     tools=[MCPToolset(connection_params=StdioServerParameters(
         command='npx', 
-        args=["-y", "@modelcontextprotocol/server-gdrive"],
-        env={"GDRIVE_CREDENTIALS_PATH": os.getenv("GDRIVE_CRED_PATH")},
+        args=["-y", "@isaacphi/mcp-gdrive"],
+        env={"GDRIVE_CREDS_DIR": os.getenv("GDRIVE_CREDS_DIR"), 
+        "CLIENT_ID": os.getenv("CLIENT_ID"),
+        "CLIENT_SECRET": os.getenv("CLIENT_SECRET"),
+        },
     ),),],
     )
 
